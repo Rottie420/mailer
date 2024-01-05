@@ -4,6 +4,7 @@ import time
 from verify_email import verify_email
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from datetime import datetime
 
 class EmailSender:
     def __init__(self, sender_name, sender_email, smtp_server, smtp_port, smtp_username, smtp_password):
@@ -27,8 +28,6 @@ class EmailSender:
             server.starttls()
             server.login(self.smtp_username, self.smtp_password)
             server.sendmail(self.sender_email, receiver_email, message.as_string())
-
-        print("Email sent successfully!")
 
     def is_valid_email(self, email):
       return verify_email(email)
@@ -83,8 +82,15 @@ html_content = """
 </html>
 """
 
+def datetime_string():
+  now = datetime.now()
+  string = now.strftime("%d-%m-%y %H:%M:%S")
+  return string
+
 while True:
   try:
+    email_sent = 0
+    email_failed = 0
     email_list_empty = False
     for country_data in json_data:
         country, email_addresses = list(country_data.items())[0]       
@@ -93,19 +99,24 @@ while True:
                 subject = "Crypto Invoice for your Business Needs"
                 email_sender.send_email(email, subject, html_content)
                 email_addresses.remove(email)
+                print(f'{datetime_string()} {email} was sent. Remaining emails: {len(email_addresses)}')
+                email_sent += 1
             else:
-                print(f"{email} in {country} is not a valid email address.")
+                print(f"{datetime_string()} {email} is not a valid email address. Remaining emails: {len(email_addresses)}")
                 email_addresses.remove(email)
+                email_failed += 1
+            time.sleep(1)
      
         if len(email_addresses) == 0:
-          print('email list is now empty')
+          print(f'{datetime_string()} email list is now empty')
           email_list_empty = True
 
         time.sleep(10)
-
+        
     if email_list_empty:
+      print(f"results : {email_sent} emails sent, {email_failed} emails failed")
       break
   
   except Exception as e:
-    print(f"An error occurred: {e}")
+    print(f"{datetime_string()} An error occurred: {e}")
     time.sleep(60)
